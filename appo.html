@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Appointment</title>
+    <style>
+        body {
+            background-color: beige;
+            font-family: Arial, sans-serif;
+        }
+        form {
+            width: 300px;
+            margin: auto;
+            padding: 20px;
+            border: 2px solid black;
+            background: white;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<form id="petForm" action="success.html" method="GET">
+    <label>Pet Name:
+        <input name="petName" id="petName" type="text">
+    </label>
+
+    <label>Age:
+        <input name="age" id="age" type="number">
+    </label>
+
+    <label>Breed:
+        <input name="breed" id="breed" type="text">
+    </label>
+
+    <label>Owner Name:
+        <input name="ownerName" id="ownerName" type="text">
+    </label>
+
+    <label>Appointment Date:
+        <input name="appointmentDate" id="appointmentDate" type="date">
+    </label>
+
+    <label>Owner Contact No:
+        <input name="contact" id="contact" type="tel">
+    </label>
+
+    <br>
+    <button type="submit">Submit</button>
+</form>
+
+<script>
+document.getElementById("petForm").addEventListener("submit", function(event) {
+    
+    let petName = document.getElementById("petName").value.trim();
+    let age = document.getElementById("age").value;
+    let ownerName = document.getElementById("ownerName").value.trim();
+    let date = document.getElementById("appointmentDate").value;
+    let contact = document.getElementById("contact").value.trim();
+
+    let namePattern = /^[A-Za-z ]+$/;
+    let phonePattern = /^[0-9]{10}$/;
+
+    const form = document.getElementById("petForm");
+
+form.addEventListener("submit", function (e) {
+  e.preventDefault(); // stop page reload
+
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData.entries());
+
+  console.log(data);
+});
+   
+
+
+    // Pet Name validation
+    if (petName === "" || !namePattern.test(petName)) {
+        alert("Please enter a valid Pet Name (letters only).");
+        event.preventDefault();
+        return;
+    }
+
+    // Age validation
+    if (age === "" || age < 0 || age > 25) {
+        alert("Please enter a valid age (0–25).");
+        event.preventDefault();
+        return;
+    }
+
+    // Owner Name validation
+    if (ownerName === "" || !namePattern.test(ownerName)) {
+        alert("Please enter a valid Owner Name (letters only).");
+        event.preventDefault();
+        return;
+    }
+
+    // Date validation
+    let today = new Date().toISOString().split("T")[0];
+    if (date === "" || date < today) {
+        alert("Appointment date cannot be in the past.");
+        event.preventDefault();
+        return;
+    }
+
+    // Contact validation
+    if (!phonePattern.test(contact)) {
+        alert("Please enter a valid 10-digit contact number.");
+        event.preventDefault();
+        return;
+    }
+
+    alert("Form submitted successfully!");
+});
+</script>
+
+</body>
+</html>
