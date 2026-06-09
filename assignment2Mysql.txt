@@ -1,0 +1,64 @@
+CREATE DATABASE librarydb;
+USE librarydb;
+
+CREATE TABLE books(
+    book_id INT PRIMARY KEY,
+    title VARCHAR(50),
+    author VARCHAR(50),
+    category VARCHAR(30),
+    price DOUBLE
+);
+INSERT INTO books VALUES
+(101,'Java Fundamentals','James Gosling','Programming',550),
+(102,'Python Basics','Guido Rossum','Programming',480),
+(103,'Data Science Handbook','Jake VanderPlas','Data Science',750),
+(104,'AI Essentials','Stuart Russell','Artificial Intelligence',890),
+(105,'Cloud Computing','Rajkumar Buyya','Cloud',650),
+(106,'Database Systems','Elmasri','Database',720),
+(107,'Operating Systems','Galvin','System Software',680),
+(108,'Computer Networks','Andrew Tanenbaum','Networking',710),
+(109,'Cyber Security Guide','William Stallings','Security',830),
+(110,'Machine Learning Concepts','Tom Mitchell','Data Science',920);
+
+
+select * from books;
+----------------------------------------------------------------------------------------------------
+CREATE DATABASE inventorydb;
+USE inventorydb;
+
+CREATE TABLE products(
+    product_id INT PRIMARY KEY,
+    product_name VARCHAR(50),
+    category VARCHAR(30),
+    quantity INT,
+    price DOUBLE
+);
+
+INSERT INTO products VALUES
+(101,'Wireless Mouse','Electronics',50,799),
+(102,'Keyboard','Electronics',40,999),
+(103,'Office Chair','Furniture',15,4500),
+(104,'Study Table','Furniture',10,6500),
+(105,'Water Bottle','Home',100,299),
+(106,'LED Bulb','Home',75,199),
+(107,'Cricket Bat','Sports',20,1800),
+(108,'Football','Sports',25,1200),
+(109,'Backpack','Accessories',35,999),
+(110,'Travel Bag','Accessories',18,2200);
+
+
+DELIMITER $$
+
+CREATE PROCEDURE GetProductsByCategory(
+    IN p_category VARCHAR(30)
+)
+BEGIN
+    SELECT *
+    FROM products
+    WHERE category = p_category;
+END$$
+
+DELIMITER ;
+
+
+CALL GetProductsByCategory('Electronics');
