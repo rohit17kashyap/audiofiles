@@ -1,0 +1,447 @@
+
+2. MovieReservationApplication.java
+java
+package com.cdac;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class MovieReservationApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MovieReservationApplication.class, args);
+    }
+}
+
+
+3. entity/Movie.java
+java
+
+package com.cdac.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "movie")
+public class Movie {
+
+    @Id
+    @Column(name = "movie_id")
+    private Integer movieId;
+
+    @Column(name = "movie_name", nullable = false, length = 100)
+    private String movieName;
+
+    @Column(name = "theatre_name", nullable = false, length = 100)
+    private String theatreName;
+
+    @Column(name = "show_time", nullable = false, length = 20)
+    private String showTime;
+
+    @Column(name = "ticket_price", nullable = false)
+    private Double ticketPrice;
+
+    public Movie() {}
+
+    public Movie(Integer movieId, String movieName, String theatreName, String showTime, Double ticketPrice) {
+        this.movieId = movieId;
+        this.movieName = movieName;
+        this.theatreName = theatreName;
+        this.showTime = showTime;
+        this.ticketPrice = ticketPrice;
+    }
+
+    public Integer getMovieId() { return movieId; }
+    public void setMovieId(Integer movieId) { this.movieId = movieId; }
+
+    public String getMovieName() { return movieName; }
+    public void setMovieName(String movieName) { this.movieName = movieName; }
+
+    public String getTheatreName() { return theatreName; }
+    public void setTheatreName(String theatreName) { this.theatreName = theatreName; }
+
+    public String getShowTime() { return showTime; }
+    public void setShowTime(String showTime) { this.showTime = showTime; }
+
+    public Double getTicketPrice() { return ticketPrice; }
+    public void setTicketPrice(Double ticketPrice) { this.ticketPrice = ticketPrice; }
+}
+
+
+4. entity/Booking.java
+java
+
+package com.cdac.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "booking")
+public class Booking {
+
+    @Id
+    @Column(name = "booking_id")
+    private Integer bookingId;
+
+    @Column(name = "customer_name", nullable = false, length = 100)
+    private String customerName;
+
+    @Column(name = "mobile_number", nullable = false, length = 15)
+    private String mobileNumber;
+
+    // Foreign key reference to Movie
+    @ManyToOne
+    @JoinColumn(name = "movie_id", referencedColumnName = "movie_id", nullable = false)
+    private Movie movie;
+
+    @Column(name = "no_of_tickets", nullable = false)
+    private Integer noOfTickets;
+
+    @Column(name = "total_amount", nullable = false)
+    private Double totalAmount;
+
+    public Booking() {}
+
+    public Integer getBookingId() { return bookingId; }
+    public void setBookingId(Integer bookingId) { this.bookingId = bookingId; }
+
+    public String getCustomerName() { return customerName; }
+    public void setCustomerName(String customerName) { this.customerName = customerName; }
+
+    public String getMobileNumber() { return mobileNumber; }
+    public void setMobileNumber(String mobileNumber) { this.mobileNumber = mobileNumber; }
+
+    public Movie getMovie() { return movie; }
+    public void setMovie(Movie movie) { this.movie = movie; }
+
+    public Integer getNoOfTickets() { return noOfTickets; }
+    public void setNoOfTickets(Integer noOfTickets) { this.noOfTickets = noOfTickets; }
+
+    public Double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+}
+
+
+5. repository/MovieRepository.java
+java
+package com.cdac.repository;
+
+import com.cdac.entity.Movie;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface MovieRepository extends JpaRepository<Movie, Integer> {
+}
+
+
+6. repository/BookingRepository.java
+java
+
+package com.cdac.repository;
+
+import com.cdac.entity.Booking;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface BookingRepository extends JpaRepository<Booking, Integer> {
+}
+7. controller/MovieController.java
+java
+package com.cdac.controller;
+
+import com.cdac.entity.Booking;
+import com.cdac.entity.Movie;
+import com.cdac.repository.BookingRepository;
+import com.cdac.repository.MovieRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Optional;
+
+@Controller
+public class MovieController {
+
+    @Autowired
+    private MovieRepository movieRepository;
+
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    // 1. Home Page
+    @GetMapping("/")
+    public String home() {
+        return "home";
+    }
+
+    // 2. Display Available Movies
+    @GetMapping("/movies")
+    public String showMovies(Model model) {
+        List<Movie> movieList = movieRepository.findAll();
+        model.addAttribute("movieList", movieList);
+        return "movies";
+    }
+
+    // 3. Show Booking Form
+    @GetMapping("/booking")
+    public String showBookingForm(Model model) {
+        List<Movie> movieList = movieRepository.findAll();
+        model.addAttribute("movieList", movieList);
+        model.addAttribute("booking", new Booking());
+        return "booking";
+    }
+
+    // 4. Save Booking -> calculate total amount and save
+    @PostMapping("/saveBooking")
+    public String saveBooking(@RequestParam Integer bookingId,
+                               @RequestParam String customerName,
+                               @RequestParam String mobileNumber,
+                               @RequestParam Integer movieId,
+                               @RequestParam Integer noOfTickets,
+                               Model model) {
+
+        Optional<Movie> movieOpt = movieRepository.findById(movieId);
+
+        if (movieOpt.isEmpty()) {
+            model.addAttribute("errorMessage", "Invalid Movie ID selected!");
+            model.addAttribute("movieList", movieRepository.findAll());
+            model.addAttribute("booking", new Booking());
+            return "booking";
+        }
+
+        Movie movie = movieOpt.get();
+
+        // Business logic: Total Amount = noOfTickets * ticketPrice
+        double totalAmount = noOfTickets * movie.getTicketPrice();
+
+        Booking booking = new Booking();
+        booking.setBookingId(bookingId);
+        booking.setCustomerName(customerName);
+        booking.setMobileNumber(mobileNumber);
+        booking.setMovie(movie);
+        booking.setNoOfTickets(noOfTickets);
+        booking.setTotalAmount(totalAmount);
+
+        bookingRepository.save(booking);
+
+        model.addAttribute("booking", booking);
+        return "success";
+    }
+
+    // 5. View Booked Tickets
+    @GetMapping("/bookedTickets")
+    public String viewBookedTickets(Model model) {
+        List<Booking> bookingList = bookingRepository.findAll();
+        model.addAttribute("bookingList", bookingList);
+        return "bookedtickets";
+    }
+
+    // 6. Cancel Ticket
+    @GetMapping("/cancelBooking/{id}")
+    public String cancelBooking(@PathVariable("id") Integer bookingId) {
+        bookingRepository.deleteById(bookingId);
+        return "redirect:/bookedTickets";
+    }
+}
+
+8. resources/application.properties
+properties
+
+spring.application.name=MovieReservationSystem
+
+server.port=8080
+
+# Database Configuration
+spring.datasource.url=jdbc:mysql://localhost:3306/moviedb
+spring.datasource.username=root
+spring.datasource.password=root
+
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# JPA & Hibernate
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# Thymeleaf
+spring.thymeleaf.cache=false
+
+9. templates/home.html
+
+html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>CineMax Multiplex</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; padding-top: 60px; }
+        h1 { color: #b30000; }
+        a.btn { display: inline-block; margin: 10px; padding: 12px 25px; background: #b30000; color: white; text-decoration: none; border-radius: 5px; }
+        a.btn:hover { background: #800000; }
+    </style>
+</head>
+<body>
+    <h1>🎬 CineMax Multiplex - Movie Ticket Reservation System</h1>
+    <a class="btn" th:href="@{/movies}">View Available Movies</a>
+    <a class="btn" th:href="@{/booking}">Book Ticket</a>
+    <a class="btn" th:href="@{/bookedTickets}">View Booked Tickets</a>
+</body>
+</html>
+
+10. templates/movies.html
+
+html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Available Movies</title>
+  
+</head>
+<body>
+    <h2>Available Movies</h2>
+    <table>
+        <tr>
+            <th>Movie ID</th>
+            <th>Movie Name</th>
+            <th>Theatre Name</th>
+            <th>Show Time</th>
+            <th>Ticket Price</th>
+        </tr>
+        <tr th:each="movie : ${movieList}">
+            <td th:text="${movie.movieId}"></td>
+            <td th:text="${movie.movieName}"></td>
+            <td th:text="${movie.theatreName}"></td>
+            <td th:text="${movie.showTime}"></td>
+            <td th:text="${movie.ticketPrice}"></td>
+        </tr>
+    </table>
+    <a class="back" th:href="@{/}">Back to Home</a>
+</body>
+</html>
+
+11. templates/booking.html
+
+html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Book Ticket</title>
+ 
+</head>
+<body>
+    <div class="form-container">
+        <h2>Book Movie Ticket</h2>
+        <p class="error" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+
+        <form th:action="@{/saveBooking}" method="post">
+            <label>Booking ID</label>
+            <input type="number" name="bookingId" required>
+
+            <label>Customer Name</label>
+            <input type="text" name="customerName" required>
+
+            <label>Mobile Number</label>
+            <input type="text" name="mobileNumber" required>
+
+            <label>Select Movie</label>
+            <select name="movieId" required>
+                <option value="">-- Select Movie --</option>
+                <option th:each="movie : ${movieList}"
+                        th:value="${movie.movieId}"
+                        th:text="${movie.movieId} + ' - ' + ${movie.movieName} + ' (' + ${movie.theatreName} + ', ' + ${movie.showTime} + ', ₹' + ${movie.ticketPrice} + ')'">
+                </option>
+            </select>
+
+            <label>Number of Tickets</label>
+            <input type="number" name="noOfTickets" min="1" required>
+
+            <button type="submit">Book Now</button>
+        </form>
+        <a class="back" th:href="@{/}">Back to Home</a>
+    </div>
+</body>
+</html>
+
+
+12. templates/success.html
+html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Booking Successful</title>
+    
+</head>
+<body>
+    <div class="card">
+        <h2> Booking Successful!</h2>
+        <p><b>Booking ID:</b> <span th:text="${booking.bookingId}"></span></p>
+        <p><b>Customer:</b> <span th:text="${booking.customerName}"></span></p>
+        <p><b>Movie:</b> <span th:text="${booking.movie.movieName}"></span></p>
+        <p><b>Theatre:</b> <span th:text="${booking.movie.theatreName}"></span></p>
+        <p><b>Tickets:</b> <span th:text="${booking.noOfTickets}"></span></p>
+        <p><b>Total Amount:</b> ₹<span th:text="${booking.totalAmount}"></span></p>
+
+        <a class="btn" th:href="@{/bookedTickets}">View All Bookings</a>
+        <a class="btn" th:href="@{/}">Home</a>
+    </div>
+</body>
+</html>
+
+
+13. templates/bookedtickets.html
+html
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Booked Tickets</title>
+</head>
+<body>
+    <h2>Booked Tickets</h2>
+    <table>
+        <tr>
+            <th>Booking ID</th>
+            <th>Customer Name</th>
+            <th>Mobile Number</th>
+            <th>Movie Name</th>
+            <th>Theatre Name</th>
+            <th>No. of Tickets</th>
+            <th>Total Amount</th>
+            <th>Action</th>
+        </tr>
+        <tr th:each="booking : ${bookingList}">
+            <td th:text="${booking.bookingId}"></td>
+            <td th:text="${booking.customerName}"></td>
+            <td th:text="${booking.mobileNumber}"></td>
+            <td th:text="${booking.movie.movieName}"></td>
+            <td th:text="${booking.movie.theatreName}"></td>
+            <td th:text="${booking.noOfTickets}"></td>
+            <td th:text="${booking.totalAmount}"></td>
+            <td>
+                <a class="cancel" th:href="@{/cancelBooking/{id}(id=${booking.bookingId})}"
+                   onclick="return confirm('Are you sure you want to cancel this booking?');">Cancel</a>
+            </td>
+        </tr>
+    </table>
+    <a class="back" th:href="@{/}">Back to Home</a>
+</body>
+</html>
+
+14. MySQL setup (run before testing)
+sql
+CREATE DATABASE moviedb;
+USE moviedb;
+
+INSERT INTO movie VALUES (101, 'Avengers: Endgame', 'PVR Orion Mall', '10:00 AM', 250);
+INSERT INTO movie VALUES (102, 'Leo', 'INOX Garuda Mall', '01:30 PM', 220);
+INSERT INTO movie VALUES (103, 'Interstellar', 'Cinepolis Nexus Mall', '04:00 PM', 300);
+INSERT INTO movie VALUES (104, 'Pushpa 2', 'PVR Phoenix Mall', '07:30 PM', 280);
+INSERT INTO movie VALUES (105, 'Jurassic World', 'INOX Forum Mall', '09:45 PM', 260);
